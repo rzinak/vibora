@@ -5,7 +5,7 @@ PDF TO PNG:
    Remember to provide the full path to the file, and do not forget to add the .pdf at the end ;)
 
 PDF TO TEXT:
-   To convert a .PDF to .TXT, use: 'pdf2text [file].pdf'
+   To convert a .PDF to .TXT, use: 'pdf2txt [file].pdf'
    Remember to provide the full path to the file, and do not forget to add the .pdf at the end ;)
 
 EXTRACT IMAGES FROM PDF:
@@ -33,37 +33,37 @@ RENAME FILES:
    It will change the name of the file you provided, with the name you typed after it, without affecting the file.
 
 ROTATE PDF:
-   To rotate a .PDF file, you can you can use: 'rotate [file].pdf'
-   It will rotate you file by 90º. Depending on your file, you may want to rotate it multiple times.
+   To rotate a .PDF file, you can use: 'rotate [file].pdf'
+   It will rotate your file by 90 degrees. Depending on your file, you may want to rotate it multiple times.
 
 IMAGE TO PDF:
-   To convert an image to a .PDF file, you can you can use: 'img2pdf [file].[extension]'
+   To convert an image to a .PDF file, you can use: 'img2pdf [file].[extension]'
    It can convert multiple image formats into a .PDF file.
 
 SPLIT PDF:
-   To split a .PDF file into separated pages, you can you can use: 'split [file].pdf'
+   To split a .PDF file into separated pages, you can use: 'split [file].pdf'
    It will split the .PDF file into separated pages. Each page from the .PDF will be a single .PDF file.
 
 WATERMARK PDF:
-   To add watermark to a a .PDF file, you can you can use: 'watermark [file].pdf [watermarkfile].pdf'
+   To add watermark to a .PDF file, you can use: 'watermark [file].pdf [watermarkfile].pdf'
    It will add a watermark to the bottom left of the .PDF file. Remember that the watermark must also be a .PDF file.
 
 ENCRYPT PDF:
-   To encrypt a .PDF file, you can you can use: 'encrypt [file].pdf [password]'
+   To encrypt a .PDF file, you can use: 'encrypt [file].pdf [password]'
    It will encrypt a .pdf file by adding a password to be able to read its content.
 
 DECRYPT PDF:
-   To decrypt a .PDF file, you can you can use: 'decrypt [file].pdf [password]'
+   To decrypt a .PDF file, you can use: 'decrypt [file].pdf [password]'
    It will remove the password of a pdf file. Note that it doesn't crack the .pdf file, it works only if you have the password.
 
 READ PDF FOR ME:
-   To make vibora read (yes, audio related) a .PDF file, you can use: 'pdf2audio [file].pdf'")
-   It will start reading the text of a pdf file for you. You can stop it by pressing CTRL + C.")
+   To make vibora read (yes, audio related) a .PDF file, you can use: 'pdf2audio [file].pdf'
+   It will start reading the text of a pdf file for you. You can stop it by pressing CTRL + C.
 
 REDACT SENSITIVE INFORMATION:
-   To redact sensitive information in a .PDF file, you can use: 'redact [file].pdf'")
-   It will hide sensitive information behind a black rectangle.")
+   To redact sensitive information in a .PDF file, you can use: 'redact [file].pdf'
+   It will hide sensitive information behind a black rectangle.
 
 COMPARE FILES:
-   To compare files at a low level, you can use: 'compare [file1.pdf] [file2.pdf]'")
-   It will compare these files at a low level (length, metadata, etc) to see if they match.")
+   To compare files at a low level, you can use: 'compare [file1.pdf] [file2.pdf]'
+   It will compare these files at a low level (length, metadata, etc) to see if they match.

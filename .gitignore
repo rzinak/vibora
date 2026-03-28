@@ -4,7 +4,7 @@ sample1img.pdf
 sample2img.pdf
 sampleimg.pdf
 samplecv.pdf
-__pycache__
+__pycache__/
 tompaper.pdf
 dummy.pdf
 build/
@@ -15,6 +15,7 @@ folder/
 large.pdf
 large2.pdf
 large3.pdf
-venv
+venv/
 env/
+myenv/
 pdfsearchdraft.py

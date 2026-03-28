@@ -1,12 +1,12 @@
-# if you are on windows, download Poppler and add it to PATH
-# go to https://github.com/oschwartz10612/poppler-windows/releases/ to get the latest version
-import time, os, sys, argparse, logging
+import sys
+import logging
+import argparse
 
 from vibora.pdf2png import pdf_to_png
 from vibora.pdf2txt import pdf_to_text
 from vibora.txt2pdf import txt_to_pdf
 from vibora.extract_img_from_pdf import extract_img_from_pdf
-from vibora.compress import compress_pdf  
+from vibora.compress import compress_pdf
 from vibora.merge import merge_pdf, merge_pdf_directory
 from vibora.rename import rename_file
 from vibora.rotate import rotate_pdf
@@ -22,300 +22,220 @@ from vibora.extra_compression.rwcompression import rwcomp
 from vibora.extra_compression.fitzcompression import fitzcomp
 from vibora.pdf_search import pdf_search
 
-if __name__ == '__main__':
-  # case we type only vibora
-  if len(sys.argv) == 1:
-    print("Missign arguments, see 'help' for reference on how to use it!")
-  # case we type vibora help
-  elif sys.argv[1].lower() == 'help':
-    with open('vibora/help', 'r') as f:
-      print(f.read())
-    
-  # case we actually pass a valid argument
-  else:
 
-    # error msg
-    def custom_error(msg):
-      print("Command not recognized. Use 'help' to see the available commands.")
-      exit()
+COMMAND_MESSAGES = {
+    "pdf2png": "Converting file: {pdf_path}",
+    "pdf2txt": "Converting file: {pdf_path}",
+    "extractimg": "Extracting images from file: {pdf_path}",
+    "compress": "Compressing file: {pdf_path}",
+    "txt2pdf": "Converting file: {txt_path}",
+    "merge": "Merging files: {pdf_files}",
+    "mergeall": "Merging files in directory: {dir_path}",
+    "rename": "Renaming file {file_path} to {new_name}",
+    "rotate": "Rotating file: {pdf_path}",
+    "img2pdf": "Converting file: {img_path}",
+    "split": "Splitting file: {pdf_path}",
+    "watermark": "Adding watermark to file: {pdf_path}",
+    "encrypt": "Encrypting file: {pdf_path}",
+    "decrypt": "Decrypting file: {pdf_path}",
+    "pdf2audio": "Reading file: {pdf_path}",
+    "redact": "Redacting file: {pdf_path}",
+    "compare": "Comparing files {file1} and {file2}",
+}
 
+
+def setup_debug(args):
+    if getattr(args, "debug", False):
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.WARNING)
+
+
+def print_status(command, args):
+    msg = COMMAND_MESSAGES.get(command)
+    if msg:
+        print(f"{msg.format(**vars(args))}\n. . .")
+
+
+def custom_error(msg):
+    print("Command not recognized. Use 'help' to see the available commands.")
+    sys.exit(1)
+
+
+def build_parser():
     parser = argparse.ArgumentParser(description="vibora")
     parser.error = custom_error
     subparser = parser.add_subparsers(title='subparser', dest='subcommand')
 
-    # pdf to png subparser
-    pdf2png_parser = subparser.add_parser('pdf2png', description='Convert a .PDF file into a .PNG file.')
-    pdf2png_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the PDF file to convert.')
-    pdf2png_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode ')
+    def add_debug(p):
+        p.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
 
-    # pdf to text subparser
-    pdf2txt_parser = subparser.add_parser('pdf2txt', description='Convert a .PDF file into a .TXT file.')
-    pdf2txt_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the PDF file.')
-    pdf2txt_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # pdf2png
+    p = subparser.add_parser('pdf2png', description='Convert a .PDF file into a .PNG file.')
+    p.add_argument('pdf_path', type=str, help='Path to the PDF file to convert.')
+    add_debug(p)
 
-    # extract img from pdf subparser
-    extractimg_parser = subparser.add_parser('extractimg', help='help message', description='It will extract all images from a .PDF file.')
-    extractimg_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    extractimg_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
-    
-    # compress subparser
-    compress_parser = subparser.add_parser('compress', help='help message', description='It will compress your file without losing quality or removing content.')
-    compress_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the PDF file to compress.')
-    compress_parser.add_argument('output', type=str, metavar='output', nargs='?', help='Name of the output file.')
-    compress_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # pdf2txt
+    p = subparser.add_parser('pdf2txt', description='Convert a .PDF file into a .TXT file.')
+    p.add_argument('pdf_path', type=str, help='Path to the PDF file.')
+    add_debug(p)
 
-    # text to pdf subparser
-    txt2pdf_parser = subparser.add_parser('txt2pdf', help='help message', description='It will convert a .TXT file into a .PDF file.')
-    txt2pdf_parser.add_argument('txt_path', type=str, metavar='txt_path', help='Path to the .TXT file.')
-    txt2pdf_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # extractimg
+    p = subparser.add_parser('extractimg', description='Extract all images from a .PDF file.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    add_debug(p)
 
-    # merge pdf subparser
-    merge_parser = subparser.add_parser('merge', help='help message', description='It will merge .PDF files into a single one.')
-    merge_parser.add_argument('pdf_files', type=str, metavar='pdf_files', nargs='+', help='Path to .PDF files.')
-    merge_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # compress
+    p = subparser.add_parser('compress', description='Compress a PDF file without losing quality.')
+    p.add_argument('pdf_path', type=str, help='Path to the PDF file to compress.')
+    p.add_argument('output', type=str, nargs='?', help='Name of the output file.')
+    add_debug(p)
 
-    # merge all pdf inside dir subparser
-    mergeall_parser = subparser.add_parser('mergeall', help='help message', description='It will merge all .PDF files inside a directory.')
-    mergeall_parser.add_argument('dir_path', type=str, metavar='dir_path', help='Path to directory.')
-    mergeall_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # txt2pdf
+    p = subparser.add_parser('txt2pdf', description='Convert a .TXT file into a .PDF file.')
+    p.add_argument('txt_path', type=str, help='Path to the .TXT file.')
+    add_debug(p)
 
-    # rename file subparser
-    rename_parser = subparser.add_parser('rename', help='help message', description='It will rename a file.')
-    rename_parser.add_argument('file_path', type=str, metavar='file_path', help='Path to the file to rename.')
-    rename_parser.add_argument('new_name', type=str, metavar='new_name', help='New file name')
-    rename_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # merge
+    p = subparser.add_parser('merge', description='Merge .PDF files into a single one.')
+    p.add_argument('pdf_files', type=str, nargs='+', help='Path to .PDF files.')
+    add_debug(p)
 
-    # rotate pdf subparser
-    rotate_parser = subparser.add_parser('rotate', help='help message', description='It will rotate a .PDF file by 90 degrees.')
-    rotate_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    rotate_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # mergeall
+    p = subparser.add_parser('mergeall', description='Merge all .PDF files inside a directory.')
+    p.add_argument('dir_path', type=str, help='Path to directory.')
+    add_debug(p)
 
-    # image to pdf subparser
-    img2pdf_parser = subparser.add_parser('img2pdf', help='help message', description='It will convert an image into a .PDF file.')
-    img2pdf_parser.add_argument('img_path', type=str, metavar='img_path', help='Path to the image file.')
-    img2pdf_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # rename
+    p = subparser.add_parser('rename', description='Rename a file.')
+    p.add_argument('file_path', type=str, help='Path to the file to rename.')
+    p.add_argument('new_name', type=str, help='New file name.')
+    add_debug(p)
 
-    # split pdf subparser
-    split_parser = subparser.add_parser('split', help='help message', description='It will split a .PDF file into separated files, each page will be a .PDF file.')
-    split_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    split_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # rotate
+    p = subparser.add_parser('rotate', description='Rotate a .PDF file by 90 degrees.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    add_debug(p)
 
-    # watermark pdf subparser
-    watermark_parser = subparser.add_parser('watermark', help='help message', description='It will add a watermark to a .PDF file.')
-    watermark_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    watermark_parser.add_argument('watermark_path', type=str, metavar='watermark_file', help='Path to the watermark file.')
-    watermark_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # img2pdf
+    p = subparser.add_parser('img2pdf', description='Convert an image into a .PDF file.')
+    p.add_argument('img_path', type=str, help='Path to the image file.')
+    add_debug(p)
 
-    # encrypt pdf subparser
-    encrypt_parser = subparser.add_parser('encrypt', help='help message', description='It will encrypt a .PDF file.')
-    encrypt_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    encrypt_parser.add_argument('password', type=str, metavar='password', help='Password to encrypt the file with.')
-    encrypt_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # split
+    p = subparser.add_parser('split', description='Split a .PDF file into separated page files.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    add_debug(p)
 
-    # decrypt pdf subparser
-    decrypt_parser = subparser.add_parser('decrypt', help='help message', description='It will decrypt a .PDF file.')
-    decrypt_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    decrypt_parser.add_argument('password', type=str, metavar='password', help='Password to decrypt the file.')
-    decrypt_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # watermark
+    p = subparser.add_parser('watermark', description='Add a watermark to a .PDF file.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    p.add_argument('watermark_path', type=str, help='Path to the watermark file.')
+    add_debug(p)
 
-    # pdf to audio subparser
-    pdf2audio_parser = subparser.add_parser('pdf2audio', help='help message', description='It will read a .PDF file for you.')
-    pdf2audio_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    pdf2audio_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # encrypt
+    p = subparser.add_parser('encrypt', description='Encrypt a .PDF file.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    p.add_argument('password', type=str, help='Password to encrypt the file with.')
+    add_debug(p)
 
-    # redact information from pdf subparser
-    redact_parser = subparser.add_parser('redact', help='help message', description='It will redact sensitive information from a .PDF file.')
-    redact_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
-    redact_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # decrypt
+    p = subparser.add_parser('decrypt', description='Decrypt a .PDF file.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    p.add_argument('password', type=str, help='Password to decrypt the file.')
+    add_debug(p)
 
-    # compare files subparser
-    compare_parser = subparser.add_parser('compare', help='help message', description='It will compare files at a low level.')
-    compare_parser.add_argument('file1', type=str, metavar='file1', help='Path to file one.')
-    compare_parser.add_argument('file2', type=str, metavar='file2', help='Path to file two.')
-    compare_parser.add_argument('-d', '--debug', action='store_true', help='enable debug mode')
+    # pdf2audio
+    p = subparser.add_parser('pdf2audio', description='Read a .PDF file aloud.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    add_debug(p)
 
-    # rwcompression subparser
-    rwcompression_parser = subparser.add_parser('rwcompress', help='help message', description='Compress files using pdfrw compressions algorithm')
-    rwcompression_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
+    # redact
+    p = subparser.add_parser('redact', description='Redact sensitive information from a .PDF file.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
+    add_debug(p)
 
-    # fitzcompression subparser
-    fitzcompression_parser = subparser.add_parser('fitzcompress', help='help message', description='Compress files using pymupdf.')
-    fitzcompression_parser.add_argument('pdf_path', type=str, metavar='pdf_path', help='Path to the .PDF file.')
+    # compare
+    p = subparser.add_parser('compare', description='Compare files at a low level.')
+    p.add_argument('file1', type=str, help='Path to file one.')
+    p.add_argument('file2', type=str, help='Path to file two.')
+    add_debug(p)
 
-    # pdf seach subparser
-    pdf_search_parser = subparser.add_parser('pdfsearch', help='help message', description='Search for .PDF files in the web.')
-    pdf_search_parser.add_argument('theme', type=str, nargs='+', metavar='theme', help='What kind of .PDF files you want to find?')
+    # rwcompress
+    p = subparser.add_parser('rwcompress', description='Compress files using pdfrw compression algorithm.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
 
-    args = parser.parse_args()  
+    # fitzcompress
+    p = subparser.add_parser('fitzcompress', description='Compress files using pymupdf.')
+    p.add_argument('pdf_path', type=str, help='Path to the .PDF file.')
 
-    match args.subcommand:
+    # pdfsearch
+    p = subparser.add_parser('pdfsearch', description='Search for .PDF files on the web.')
+    p.add_argument('theme', type=str, nargs='+', help='What kind of .PDF files you want to find?')
 
-      case 'pdf2png':
-        pdf_path = args.pdf_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Converting file: {args.pdf_path}\n. . .\nFile converted!")
-        pdf_to_png(pdf_path)
-      
-      case 'pdf2txt':
-        pdf_path = args.pdf_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Converting file: {args.pdf_path}\n. . .\nFile converted!")
-        pdf_to_text(pdf_path)
+    return parser
 
-      case 'extractimg':
-        pdf_path = args.pdf_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Extracting images from file: {args.pdf_path}\n. . .\nImages extracted!")
-        extract_img_from_pdf(pdf_path)
 
-      case 'compress':
-        pdf_path = args.pdf_path
-        output = args.output
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            # logging.basicConfig(level=logging.INFO)
-            print(f"Compressing file: {args.pdf_path}\n. . .\nFile compressed!")
-        compress_pdf(pdf_path, output)
-      
-      case 'txt2pdf':
-        txt_path = args.txt_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Converting file {txt_path}\n. . .\nFile converted!")
-        txt_to_pdf(txt_path)
+def run_command(args):
+    cmd = args.subcommand
+    setup_debug(args)
 
-      case 'merge':
-        pdf_files = args.pdf_files
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Merging files: {pdf_files}\n. . .\nFiles merged!")
-        merge_pdf(*pdf_files)
+    if cmd in COMMAND_MESSAGES:
+        print_status(cmd, args)
 
-      case 'mergeall':
-        dir_path = args.dir_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Merging files in directory: {dir_path}\n. . .\n Files merged!")
-        merge_pdf_directory(dir_path)
-    
-      case 'rename':
-        file_path = args.file_path
-        new_name = args.new_name
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Renaming file {file_path} to {new_name}")
-        rename_file(file_path, new_name)
+    match cmd:
+        case 'pdf2png':
+            pdf_to_png(args.pdf_path)
+        case 'pdf2txt':
+            pdf_to_text(args.pdf_path)
+        case 'extractimg':
+            extract_img_from_pdf(args.pdf_path)
+        case 'compress':
+            compress_pdf(args.pdf_path, args.output)
+        case 'txt2pdf':
+            txt_to_pdf(args.txt_path)
+        case 'merge':
+            merge_pdf(*args.pdf_files)
+        case 'mergeall':
+            merge_pdf_directory(args.dir_path)
+        case 'rename':
+            rename_file(args.file_path, args.new_name)
+        case 'rotate':
+            rotate_pdf(args.pdf_path)
+        case 'img2pdf':
+            image_to_pdf(args.img_path)
+        case 'split':
+            split_pdf(args.pdf_path)
+        case 'watermark':
+            watermark_pdf(args.pdf_path, args.watermark_path)
+        case 'encrypt':
+            encrypt_pdf(args.pdf_path, args.password)
+        case 'decrypt':
+            decrypt_pdf(args.pdf_path, args.password)
+        case 'pdf2audio':
+            audio(args.pdf_path)
+        case 'redact':
+            Redactor(args.pdf_path).redaction()
+        case 'compare':
+            compare_file(args.file1, args.file2)
+        case 'rwcompress':
+            rwcomp(args.pdf_path)
+        case 'fitzcompress':
+            fitzcomp(args.pdf_path)
+        case 'pdfsearch':
+            theme = ' '.join(args.theme)
+            pdf_search(theme)
 
-      case 'rotate':
-        pdf_path = args.pdf_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Rotating file: {pdf_path}\n. . .\nFile rotated!")
-        rotate_pdf(pdf_path)
 
-      case 'img2pdf':
-        img_path = args.img_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Converting file: {args.img_path}\n. . .\nFile converted!")
-        image_to_pdf(img_path)
-      
-      case 'split':
-        pdf_path = args.pdf_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Splitting file: {pdf_path}\n. . .\nFile split!")
-        split_pdf(pdf_path)
-
-      case 'watermark':
-        pdf_path = args.pdf_path
-        watermark_path = args.watermark_path
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Adding watermark to file: {pdf_path}\n. . .\nWatermark added!")
-        watermark_pdf(pdf_path, watermark_path)
-
-      case 'encrypt':
-        pdf_path = args.pdf_path
-        password = args.password
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Encrypting file: {args.pdf_path}\n. . .\nFile encrypted!")
-        encrypt_pdf(pdf_path, password)
-
-      case 'decrypt':
-        pdf_path = args.pdf_path
-        password = args.password
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG) 
-          case False:
-            print(f"Decrypting file: {args.pdf_path}\n. . .\nFile decrypted!")
-        decrypt_pdf(pdf_path, password)
-
-      case 'pdf2audio':
-        pdf_path = args.pdf_path
-        audio(pdf_path)
-
-      case 'redact':
-        pdf_path = args.pdf_path
-        redactor = Redactor(pdf_path)
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            print(f"Redacting file: {pdf_path}")
-        redactor.redaction()
-      
-      case 'compare':
-        file1 = args.file1
-        file2 = args.file2
-        match args.debug:
-          case True:
-            logging.basicConfig(level=logging.DEBUG)
-          case False:
-            # logging.basicConfig(level=logging.DEBUG)
-            print(f"Comparing files {file1} and {file2}\n. . .")
-        compare_file(file1, file2)
-
-      case 'rwcompress':
-        pdf_path = args.pdf_path
-        rwcomp(pdf_path)
-
-      case 'fitzcompress':
-        pdf_path = args.pdf_path
-        fitzcomp(pdf_path)
-
-      case 'pdfsearch':
-        theme = ' '.join(args.theme)
-        pdf_search(theme)
-
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        print("Missing arguments, see 'help' for reference on how to use it!")
+    elif sys.argv[1].lower() == 'help':
+        import os
+        help_path = os.path.join(os.path.dirname(__file__), 'vibora', 'help')
+        with open(help_path, 'r') as f:
+            print(f.read())
+    else:
+        parser = build_parser()
+        args = parser.parse_args()
+        run_command(args)

@@ -1,36 +1,29 @@
-import logging, time, os, psutil
-from PyPDF2 import PdfReader, PdfWriter
+import logging
+import os
+from vibora.utils import setup_timing, log_memory, finish_timing, log_progress
 
-# encrypt a pdf file
+
 def encrypt_pdf(pdf_path, password, progress_interval=1):
+    from PyPDF2 import PdfReader, PdfWriter
+
     try:
         logging.info(f"Started encrypting PDF file: {pdf_path}")
         logging.info(f"File size: {os.path.getsize(pdf_path)} bytes")
-        start_time = time.time()
-        process = psutil.Process(os.getpid())  # get current process
+        start_time, process = setup_timing()
         out = PdfWriter()
-        file = PdfReader(pdf_path)
-        num = len(file.pages)
+        reader = PdfReader(pdf_path)
+        num = len(reader.pages)
         progress_counter = 0
-        for i, idx in enumerate(range(num)):
+        for i in range(num):
             logging.debug(f"Encrypting page {i+1}")
-            page = file.pages[idx]
-            out.add_page(page)
-            mem_usage = process.memory_info().rss / 1024 / 1024
-            logging.debug(f"Memory usage: {mem_usage:.2f} MB")
-            if i + 1 >= progress_counter + progress_interval or i + 1 == num:
-                progress_counter = i + 1
-                progress_percent = progress_counter / num * 100
-                logging.info(
-                    f"Encrypted {progress_counter} of {num} pages ({progress_percent:.1f}%)"
-                )
+            out.add_page(reader.pages[i])
+            log_memory(process)
+            progress_counter = log_progress(i, num, progress_counter, progress_interval, "Encrypted")
         out.encrypt(password)
-        with open("file.pdf", "wb") as f:
+        output_file = "file.pdf"
+        with open(output_file, "wb") as f:
             out.write(f)
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        logging.info(f"File size after encryption: {os.path.getsize(pdf_path)} bytes")
-        logging.info("Finished encrypting file. Elapsed time %.3f", elapsed_time)
+        logging.info(f"File size after encryption: {os.path.getsize(output_file)} bytes")
+        finish_timing(start_time, "encrypting file")
     except Exception as e:
         logging.exception(e)
-
